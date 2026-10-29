@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>OpsWatch | Application Monitoring</title>
+
+  <style>
+    :root {
+      --bg: #070a0b;
+      --panel: #0d1214;
+      --panel-line: #1c2629;
+      --text: #e6eeee;
+      --muted: #7f9295;
+      --ok: #32d583;
+      --watch: #f5b942;
+      --crit: #ff5c5c;
+      --accent: #57d6ff;
+      --mono: "Consolas", "Courier New", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, sans-serif;
+    }
+
+    .container {
+      width: 92%;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 30px 0 50px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+    }
+
+    .title-area h1 {
+      margin: 0;
+      font-family: var(--mono);
+      font-size: 30px;
+      letter-spacing: 1px;
+    }
+
+    .title-area p {
+      margin-top: 8px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .live {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--ok);
+    }
+
+    .live-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--ok);
+    }
+
+    /* SUMMARY CARDS */
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--panel-line);
+      border-radius: 7px;
+      padding: 20px;
+    }
+
+    .card-label {
+      font-family: var(--mono);
+      color: var(--muted);
+      font-size: 11px;
+      margin-bottom: 10px;
+    }
+
+    .card-value {
+      font-family: var(--mono);
+      font-size: 28px;
+      font-weight: bold;
+    }
+
+    .healthy {
+      color: var(--ok);
+    }
+
+    .watch {
+      color: var(--watch);
+    }
+
+    .critical {
+      color: var(--crit);
+    }
+
+    /* PANELS */
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-line);
+      border-radius: 7px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--panel-line);
+    }
+
+    .panel-head h2 {
+      margin: 0;
+      font-family: var(--mono);
+      font-size: 15px;
+    }
+
+    .panel-head span {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* CREATE INCIDENT */
+
+    .incident-form {
+      padding: 20px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 7px;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid var(--panel-line);
+      background: #090d0e;
+      color: var(--text);
+      outline: none;
+      font-family: var(--mono);
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      border-color: var(--accent);
+    }
+
+    .form-actions {
+      margin-top: 18px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .create-btn {
+      border: none;
+      border-radius: 5px;
+      padding: 11px 18px;
+      background: var(--crit);
+      color: white;
+      cursor: pointer;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .create-btn:hover {
+      opacity: 0.85;
+    }
+
+    .message {
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    /* APPLICATION GRID */
+
+    .app-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      padding: 18px;
+    }
+
+    .app-card {
+      border: 1px solid var(--panel-line);
+      border-radius: 6px;
+      padding: 16px;
+      background: #0a0f10;
+    }
+
+    .app-name {
+      font-family: var(--mono);
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+
+    .app-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--mono);
+      font-size: 11px;
+      margin-bottom: 15px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .status-healthy {
+      background: var(--ok);
+    }
+
+    .status-watch {
+      background: var(--watch);
+    }
+
+    .status-critical {
+      background: var(--crit);
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .metric {
+      border-top: 1px solid var(--panel-line);
+      padding-top: 9px;
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 10px;
+    }
+
+    .metric-value {
+      margin-top: 4px;
+      font-family: var(--mono);
+      font-size: 15px;
+    }
+
+    /* INCIDENT TABLE */
+
+    .table-wrapper {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      text-align: left;
+      padding: 12px 15px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 10px;
+      border-bottom: 1px solid var(--panel-line);
+    }
+
+    td {
+      padding: 13px 15px;
+      font-family: var(--mono);
+      font-size: 11px;
+      border-bottom: 1px solid var(--panel-line);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-family: var(--mono);
+    }
+
+    .badge-watch {
+      color: var(--watch);
+      border: 1px solid var(--watch);
+    }
+
+    .badge-critical {
+      color: var(--crit);
+      border: 1px solid var(--crit);
+    }
+
+    .badge-open {
+      color: var(--watch);
+      border: 1px solid var(--watch);
+    }
+
+    .badge-resolved {
+      color: var(--ok);
+      border: 1px solid var(--ok);
+    }
+
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      padding: 30px;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    footer {
+      margin-top: 20px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 10px;
+      text-align: right;
+    }
+
+    /* RESPONSIVE */
+
+    @media (max-width: 900px) {
+      .summary {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .app-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .form-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 600px) {
+      .summary {
+        grid-template-columns: 1fr;
+      }
+
+      .app-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <!-- HEADER -->
+
+  <header>
+    <div class="title-area">
+      <h1>OPSWATCH</h1>
+      <p>APPLICATION MONITORING & AUTO-REMEDIATION SYSTEM</p>
+    </div>
+
+    <div class="live">
+      <span class="live-dot"></span>
+      SYSTEM LIVE
+    </div>
+  </header>
+
+
+  <!-- SUMMARY -->
+
+  <div class="summary">
+
+    <div class="card">
+      <div class="card-label">MONITORED APPLICATIONS</div>
+      <div class="card-value" id="totalApps">0</div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">HEALTHY</div>
+      <div class="card-value healthy" id="healthyApps">0</div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">WATCH</div>
+      <div class="card-value watch" id="watchApps">0</div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">CRITICAL</div>
+      <div class="card-value critical" id="criticalApps">0</div>
+    </div>
+
+  </div>
+
+
+  <!-- CREATE INCIDENT -->
+
+  <div class="panel">
+
+    <div class="panel-head">
+      <h2>CREATE TEST INCIDENT</h2>
+
+      <span>
+        MANUAL AUTOMATION TEST
+      </span>
+    </div>
+
+    <div class="incident-form">
+
+      <form id="incidentForm">
+
+        <div class="form-grid">
+
+          <div class="form-group">
+            <label>APPLICATION</label>
+
+            <select id="incidentApp" required>
+              <option value="Billing-API">Billing-API</option>
+              <option value="Order-Service">Order-Service</option>
+              <option value="Auth-Gateway">Auth-Gateway</option>
+              <option value="Inventory-DB">Inventory-DB</option>
+              <option value="Notification-Svc">Notification-Svc</option>
+              <option value="Reporting-Engine">Reporting-Engine</option>
+            </select>
+          </div>
+
+
+          <div class="form-group">
+            <label>SEVERITY</label>
+
+            <select id="incidentSeverity" required>
+              <option value="watch">Watch</option>
+              <option value="critical">Critical</option>
+            </select>
+          </div>
+
+
+          <div class="form-group">
+            <label>CPU USAGE (%)</label>
+
+            <input
+              type="number"
+              id="incidentCpu"
+              min="0"
+              max="100"
+              value="95"
+              required
+            >
+          </div>
+
+
+          <div class="form-group">
+            <label>DISK USAGE (%)</label>
+
+            <input
+              type="number"
+              id="incidentDisk"
+              min="0"
+              max="100"
+              value="90"
+              required
+            >
+          </div>
+
+        </div>
+
+
+        <div class="form-actions">
+
+          <button
+            type="submit"
+            class="create-btn"
+          >
+            CREATE INCIDENT
+          </button>
+
+          <span
+            id="incidentMessage"
+            class="message"
+          ></span>
+
+        </div>
+
+      </form>
+
+    </div>
+
+  </div>
+
+
+  <!-- APPLICATION MONITORING -->
+
+  <div class="panel">
+
+    <div class="panel-head">
+
+      <h2>APPLICATION MONITORING</h2>
+
+      <span>
+        AUTO REFRESH: 4s
+      </span>
+
+    </div>
+
+    <div
+      class="app-grid"
+      id="applicationGrid"
+    >
+    </div>
+
+  </div>
+
+
+  <!-- INCIDENT LOG -->
+
+  <div class="panel">
+
+    <div class="panel-head">
+
+      <h2>INCIDENT LOG</h2>
+
+      <span>
+        DATABASE: MYSQL
+      </span>
+
+    </div>
+
+    <div class="table-wrapper">
+
+      <table>
+
+        <thead>
+
+          <tr>
+            <th>ID</th>
+            <th>APPLICATION</th>
+            <th>SEVERITY</th>
+            <th>CPU</th>
+            <th>DISK</th>
+            <th>STATUS</th>
+          </tr>
+
+        </thead>
+
+        <tbody id="incidentTable">
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </div>
+
+
+  <footer>
+    OpsWatch &nbsp;|&nbsp; Simulated Monitoring Environment
+  </footer>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   APPLICATION DATA
+   ========================================================= */
+
+const applications = [
+
+  {
+    name: "Billing-API",
+    status: "healthy",
+    cpu: 42,
+    disk: 51
+  },
+
+  {
+    name: "Order-Service",
+    status: "watch",
+    cpu: 69,
+    disk: 61
+  },
+
+  {
+    name: "Auth-Gateway",
+    status: "healthy",
+    cpu: 38,
+    disk: 47
+  },
+
+  {
+    name: "Inventory-DB",
+    status: "watch",
+    cpu: 83,
+    disk: 67
+  },
+
+  {
+    name: "Notification-Svc",
+    status: "healthy",
+    cpu: 31,
+    disk: 44
+  },
+
+  {
+    name: "Reporting-Engine",
+    status: "healthy",
+    cpu: 49,
+    disk: 58
+  }
+
+];
+
+
+/* =========================================================
+   RENDER APPLICATIONS
+   ========================================================= */
+
+function renderApplications() {
+
+  const grid =
+    document.getElementById("applicationGrid");
+
+  grid.innerHTML = "";
+
+
+  applications.forEach(app => {
+
+    let statusText =
+      app.status.toUpperCase();
+
+    let statusClass =
+      "status-" + app.status;
+
+
+    const card =
+      document.createElement("div");
+
+    card.className = "app-card";
+
+
+    card.innerHTML = `
+
+      <div class="app-name">
+        ${app.name}
+      </div>
+
+      <div class="app-status">
+
+        <span
+          class="status-dot ${statusClass}">
+        </span>
+
+        ${statusText}
+
+      </div>
+
+
+      <div class="metrics">
+
+        <div class="metric">
+
+          <div class="metric-label">
+            CPU
+          </div>
+
+          <div class="metric-value">
+            ${app.cpu}%
+          </div>
+
+        </div>
+
+
+        <div class="metric">
+
+          <div class="metric-label">
+            DISK
+          </div>
+
+          <div class="metric-value">
+            ${app.disk}%
+          </div>
+
+        </div>
+
+      </div>
+
+    `;
+
+
+    grid.appendChild(card);
+
+  });
+
+
+  updateSummary();
+
+}
+
+
+/* =========================================================
+   UPDATE SUMMARY
+   ========================================================= */
+
+function updateSummary() {
+
+  const total =
+    applications.length;
+
+  const healthy =
+    applications.filter(
+      app => app.status === "healthy"
+    ).length;
+
+  const watch =
+    applications.filter(
+      app => app.status === "watch"
+    ).length;
+
+  const critical =
+    applications.filter(
+      app => app.status === "critical"
+    ).length;
+
+
+  document.getElementById("totalApps")
+    .textContent = total;
+
+  document.getElementById("healthyApps")
+    .textContent = healthy;
+
+  document.getElementById("watchApps")
+    .textContent = watch;
+
+  document.getElementById("criticalApps")
+    .textContent = critical;
+
+}
+
+
+/* =========================================================
+   LOAD INCIDENTS
+   ========================================================= */
+
+async function refreshIncidents() {
+
+  try {
+
+    const response =
+      await fetch("/api/incidents");
+
+    if (!response.ok) {
+      throw new Error("Failed to load incidents");
+    }
+
+    const incidents =
+      await response.json();
+
+
+    const table =
+      document.getElementById("incidentTable");
+
+
+    table.innerHTML = "";
+
+
+    if (incidents.length === 0) {
+
+      table.innerHTML = `
+        <tr>
+          <td
+            colspan="6"
+            class="empty"
+          >
+            No incidents recorded
+          </td>
+        </tr>
+      `;
+
+      return;
+
+    }
+
+
+    incidents.forEach(incident => {
+
+      const row =
+        document.createElement("tr");
+
+
+      let severityClass =
+        incident.severity === "critical"
+          ? "badge-critical"
+          : "badge-watch";
+
+
+      let statusClass =
+        incident.status === "resolved"
+          ? "badge-resolved"
+          : "badge-open";
+
+
+      row.innerHTML = `
+
+        <td>
+          #${incident.id}
+        </td>
+
+        <td>
+          ${incident.app_name}
+        </td>
+
+        <td>
+          <span class="badge ${severityClass}">
+            ${incident.severity.toUpperCase()}
+          </span>
+        </td>
+
+        <td>
+          ${incident.cpu_percent}%
+        </td>
+
+        <td>
+          ${incident.disk_percent}%
+        </td>
+
+        <td>
+          <span class="badge ${statusClass}">
+            ${incident.status.toUpperCase()}
+          </span>
+        </td>
+
+      `;
+
+
+      table.appendChild(row);
+
+    });
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "Incident refresh error:",
+      error
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   CREATE INCIDENT
+   ========================================================= */
+
+document
+  .getElementById("incidentForm")
+  .addEventListener(
+    "submit",
+    async function(event) {
+
+      event.preventDefault();
+
+
+      const appName =
+        document.getElementById(
+          "incidentApp"
+        ).value;
+
+
+      const severity =
+        document.getElementById(
+          "incidentSeverity"
+        ).value;
+
+
+      const cpu =
+        Number(
+          document.getElementById(
+            "incidentCpu"
+          ).value
+        );
+
+
+      const disk =
+        Number(
+          document.getElementById(
+            "incidentDisk"
+          ).value
+        );
+
+
+      const message =
+        document.getElementById(
+          "incidentMessage"
+        );
+
+
+      message.textContent =
+        "Creating incident...";
+
+      message.style.color =
+        "var(--muted)";
+
+
+      const data = {
+
+        app_name: appName,
+
+        severity: severity,
+
+        cpu_percent: cpu,
+
+        disk_percent: disk
+
+      };
+
+
+      try {
+
+        const response =
+          await fetch(
+            "/api/incidents",
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json"
+              },
+
+              body:
+                JSON.stringify(data)
+            }
+          );
+
+
+        const result =
+          await response.json();
+
+
+        if (!response.ok) {
+
+          throw new Error(
+            result.error ||
+            "Failed to create incident"
+          );
+
+        }
+
+
+        message.textContent =
+          "✓ Incident #" +
+          result.id +
+          " created successfully";
+
+        message.style.color =
+          "var(--ok)";
+
+
+        /*
+         * Refresh incident table immediately
+         */
+
+        await refreshIncidents();
+
+
+        /*
+         * Reset form values
+         */
+
+        document.getElementById(
+          "incidentCpu"
+        ).value = 95;
+
+
+        document.getElementById(
+          "incidentDisk"
+        ).value = 90;
+
+
+      }
+
+      catch (error) {
+
+        console.error(error);
+
+
+        message.textContent =
+          "✕ " +
+          error.message;
+
+
+        message.style.color =
+          "var(--crit)";
+
+      }
+
+    }
+  );
+
+
+/* =========================================================
+   INITIAL LOAD
+   ========================================================= */
+
+renderApplications();
+
+refreshIncidents();
+
+
+/* =========================================================
+   AUTO REFRESH
+   ========================================================= */
+
+setInterval(
+  refreshIncidents,
+  4000
+);
+
+</script>
+
+</body>
+</html>
