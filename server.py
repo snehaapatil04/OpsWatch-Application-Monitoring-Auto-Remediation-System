@@ -10,18 +10,16 @@ Run: python server.py
 
 from flask import Flask, request, jsonify, send_from_directory
 import mysql.connector
+import os
 
 app = Flask(__name__, static_folder=".")
-
-import os
 
 DB_CONFIG = {
     "host": os.getenv("DB_HOST", "localhost"),
     "user": os.getenv("DB_USER", "root"),
-    "password": os.getenv("root"),
+    "password": os.getenv("DB_PASSWORD", "root"),
     "database": os.getenv("DB_NAME", "opswatch")
 }
-
 
 
 def get_db():
@@ -45,16 +43,16 @@ def list_incidents():
         rows = cur.fetchall()
 
         for row in rows:
-            row["created_at"] = str(row["created_at"])
-            row["resolved_at"] = (
-                str(row["resolved_at"]) if row["resolved_at"] else None
-            )
-            row["detected_at"] = (
-                str(row["detected_at"]) if row["detected_at"] else None
-            )
-            row["attempted_at"] = (
-                str(row["attempted_at"]) if row["attempted_at"] else None
-            )
+            for field in (
+                "created_at",
+                "resolved_at",
+                "detected_at",
+                "attempted_at"
+            ):
+                if field in row:
+                    row[field] = (
+                        str(row[field]) if row[field] else None
+                    )
 
         return jsonify(rows)
 
@@ -67,12 +65,20 @@ def list_incidents():
 def create_incident():
     data = request.get_json(silent=True) or {}
 
-    required = ["app_name", "severity", "cpu_percent", "disk_percent"]
+    required = [
+        "app_name",
+        "severity",
+        "cpu_percent",
+        "disk_percent"
+    ]
 
     missing = [field for field in required if field not in data]
 
     if missing:
-        return jsonify({"error": "Missing fields", "fields": missing}), 400
+        return jsonify({
+            "error": "Missing fields",
+            "fields": missing
+        }), 400
 
     if data["severity"] not in ("watch", "critical"):
         return jsonify({"error": "Invalid severity"}), 400
@@ -82,15 +88,23 @@ def create_incident():
         disk = int(data["disk_percent"])
 
         if not (0 <= cpu <= 100 and 0 <= disk <= 100):
-            return jsonify({"error": "CPU and disk must be between 0 and 100"}), 400
+            return jsonify({
+                "error": "CPU and disk must be between 0 and 100"
+            }), 400
 
     except (TypeError, ValueError):
-        return jsonify({"error": "CPU and disk must be numbers"}), 400
+        return jsonify({
+            "error": "CPU and disk must be numbers"
+        }), 400
 
-    simulate_failure = data.get("simulate_recovery_failure", False)
+    simulate_failure = data.get(
+        "simulate_recovery_failure", False
+    )
 
     if not isinstance(simulate_failure, bool):
-        return jsonify({"error": "simulate_recovery_failure must be true or false"}), 400
+        return jsonify({
+            "error": "simulate_recovery_failure must be true or false"
+        }), 400
 
     if simulate_failure and data["severity"] != "critical":
         return jsonify({
@@ -113,14 +127,17 @@ def create_incident():
                 data["severity"],
                 cpu,
                 disk,
-                simulate_failure,
-            ),
+                simulate_failure
+            )
         )
 
         db.commit()
         new_id = cur.lastrowid
 
-        return jsonify({"id": new_id, "message": "Incident created"}), 201
+        return jsonify({
+            "id": new_id,
+            "message": "Incident created"
+        }), 201
 
     finally:
         cur.close()
@@ -128,4 +145,4 @@ def create_incident():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(host="0.0.0.0", port=5000, debug=False)

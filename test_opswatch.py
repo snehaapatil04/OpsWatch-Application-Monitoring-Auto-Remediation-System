@@ -3,9 +3,7 @@
 OpsWatch Failure Injection Test
 --------------------------------
 Creates simulated incidents, waits for bot processing,
-and calculates detection and remediation metrics.
-
-Run this while server.py and bot.py are running.
+and validates detection and remediation results.
 """
 
 import time
@@ -56,6 +54,7 @@ def get_test_results():
                 SUM(detected_at IS NOT NULL) AS detected,
                 SUM(remediation_status = 'succeeded') AS succeeded,
                 SUM(remediation_status = 'failed') AS failed,
+                SUM(status = 'resolved') AS resolved,
                 AVG(
                     CASE
                         WHEN resolved_at IS NOT NULL
@@ -80,8 +79,6 @@ if __name__ == "__main__":
     create_test_incidents()
 
     print("\nWaiting for bot to process incidents...")
-
-    # Bot polls every 5 seconds; allow additional processing time.
     time.sleep(15)
 
     results = get_test_results()
@@ -90,12 +87,14 @@ if __name__ == "__main__":
     detected = results["detected"] or 0
     succeeded = results["succeeded"] or 0
     failed = results["failed"] or 0
+    resolved = results["resolved"] or 0
 
     print("\n========== OPSWATCH TEST REPORT ==========")
     print(f"Total incidents: {total}")
     print(f"Detected incidents: {detected}")
     print(f"Successful recoveries: {succeeded}")
     print(f"Failed recoveries: {failed}")
+    print(f"Resolved incidents: {resolved}")
 
     if total:
         print(f"Detection rate: {detected / total * 100:.2f}%")
@@ -108,3 +107,18 @@ if __name__ == "__main__":
         )
 
     print("==========================================")
+
+    assert total == TEST_COUNT, (
+        f"Expected {TEST_COUNT} incidents, found {total}"
+    )
+    assert detected == TEST_COUNT, (
+        f"Expected {TEST_COUNT} detected incidents, found {detected}"
+    )
+    assert succeeded + failed == TEST_COUNT, (
+        "Some incidents were not processed by the remediation bot"
+    )
+    assert resolved == succeeded, (
+        "Resolved incident count does not match successful recoveries"
+    )
+
+    print("\nAll OpsWatch validation checks passed!")
